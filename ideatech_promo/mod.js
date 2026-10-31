@@ -24,6 +24,7 @@ const AIM_Z_MIN = -0.05
 const AIM_Z_MAX = 0.25
 // 話している間の首の動き。[ヨー(左+) , ピッチ(上+) , 保持ms] のコマを順に繰り返す。値は注視点のずれ[m]（0.1 ≒ 10度）
 // M5StackChan の首はヨーとピッチだけ（首をかしげる動きは無い）。ピッチは 5〜85度 の範囲に制限される
+const GESTURE_SCALE = 2 // 首の動き全体の大きさの倍率。大きいほど大きく振る（1 が元の大きさ）
 const GESTURES = {
   talk: [[0.05, 0.02, 800], [-0.05, 0.02, 800]], // ゆっくり左右に揺れる
   nod: [[0, -0.1, 350], [0, 0.02, 450], [0.04, 0, 400], [-0.04, 0, 400]], // うなずいてから少し揺れる
@@ -147,7 +148,7 @@ function onContextCreated(robot) {
   async function animate(frames, token) {
     for (let i = 0; token.active; i++) {
       const [dy, dz, ms] = frames[i % frames.length]
-      look(dy, dz)
+      look(dy * GESTURE_SCALE, dz * GESTURE_SCALE)
       await hold(ms, token)
     }
   }
