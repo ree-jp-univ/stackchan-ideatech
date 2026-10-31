@@ -2,7 +2,7 @@ import Timer from 'timer'
 import { closing, greeting, idleMurmurs, promos, volumePreview } from 'speeches'
 
 // --- チューニング用の値 ----------------------------------------------------
-const SPEAKER_ID = 3 // VOICEVOX: ずんだもん ノーマル（1=あまあま 7=ツンツン）
+const SPEAKER_ID = 1 // VOICEVOX: ずんだもん あまあま（3=ノーマル 7=ツンツン）。事前生成した音声を使うので、実際の声は生成時の --speaker で決まる
 const FRAME_WIDTH = 160
 const FRAME_HEIGHT = 120
 const SAMPLE_STEP = 8 // 何ピクセルおきに輝度を拾うか
