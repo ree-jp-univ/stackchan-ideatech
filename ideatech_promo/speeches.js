@@ -39,8 +39,8 @@ export const promos = [
       { key: 'kb2', text: '自分だけのキーボードを、その場で組み立てられるのだ。', balloon: '自分だけの一台を作ろう', emotion: 3, gesture: 'talk' },
       {
         key: 'kb3',
-        text: 'はんだ付けが初めてでも、先輩が教えてくれるから安心なのだ。',
-        balloon: '初心者OK！',
+        text: 'はんだ付けはいらないから、初めてでも安心なのだ。',
+        balloon: 'はんだ付け不要！',
         emotion: 3,
         gesture: 'nod',
         wink: true,
