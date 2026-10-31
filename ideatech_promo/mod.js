@@ -12,7 +12,7 @@ const TRIGGER_RATIO = 0.06 // 変化した画素がこの割合を超えたら�
 const SETTLE_MS = 1500 // 発話・首振り後、揺れが収まるまで検知しない時間
 const ABSENT_MS = 8000 // 案内が終わってからこの時間ずっと動きが無ければ立ち去ったとみなして静かになる（動きがあれば喋り続ける）
 const MURMUR_MS = 45000 // 無人時のひとりごと間隔
-// 首振り（人の方を向く）。lookAt は x=前方・y=左・z=上 [m]
+// 首振り（人の方を向く）。注視点は x=前方・y=左・z=上 [m]
 const LOOK_X = 0.5 // 注視点までの距離
 const TRACK_GAIN_Y = 0.5 // 動きの横位置のズレ(±0.5)に対する首振り量。大きいほど大きく振る
 const TRACK_GAIN_Z = 0.4 // 同じく縦方向
@@ -129,8 +129,33 @@ function onContextCreated(robot) {
   const PREGENERATED = !(tts && 'host' in tts)
   if (tts && 'speakerId' in tts) tts.speakerId = SPEAKER_ID
 
-  function look(dy = 0, dz = 0) {
-    robot.motion.lookAt([LOOK_X, aimY + dy, aimZ + dz])
+  let torqueOn = false
+  let releaseTimer
+  /**
+   * 注視点(aim)＋ずれ(dy,dz)の向きへ、サーボに角度を直接指示して首を動かす。
+   * 本家の lookAt は「今の向きから30度以上ずれたときだけ動く」ので、小さな首振りには使えない。
+   * 回転は y=左が正、p=下が正（上を向くと負）。ピッチはサーボ側で 5〜85度 に丸められる
+   */
+  async function look(dy = 0, dz = 0, seconds = 0.5) {
+    if (releaseTimer) Timer.clear(releaseTimer)
+    releaseTimer = undefined
+    try {
+      if (!torqueOn) {
+        await robot.motion.setTorque(true)
+        torqueOn = true
+      }
+      const rotation = { y: Math.atan2(aimY + dy, LOOK_X), p: -Math.atan2(aimZ + dz, LOOK_X), r: 0 }
+      await robot.motion.setPose({ position: { x: 0, y: 0, z: 0 }, rotation }, seconds)
+    } catch (e) {
+      torqueOn = false
+      trace(`[ideatech_promo] look failed: ${e}\n`)
+    }
+    // 動かさなくなったらトルクを抜く（発熱を避ける）
+    releaseTimer = Timer.set(() => {
+      releaseTimer = undefined
+      torqueOn = false
+      robot.motion.setTorque(false).catch(() => {})
+    }, 2000)
   }
 
   /** 検知後の首振りやしゃべりで画像が揺れるので、比較用の前フレームを捨てて少し検知を止める */
@@ -148,7 +173,7 @@ function onContextCreated(robot) {
   async function animate(frames, token) {
     for (let i = 0; token.active; i++) {
       const [dy, dz, ms] = frames[i % frames.length]
-      look(dy * GESTURE_SCALE, dz * GESTURE_SCALE)
+      await look(dy * GESTURE_SCALE, dz * GESTURE_SCALE, Math.max(0.2, ms / 1000 - 0.05))
       await hold(ms, token)
     }
   }
@@ -173,7 +198,7 @@ function onContextCreated(robot) {
     } finally {
       token.active = false
       await moving
-      look()
+      await look()
       if (line.hand) robot.ui.setHandAnimation('none')
       if (line.after !== undefined) robot.face.setEmotion(line.after)
       if (line.wink) await wink()
@@ -187,7 +212,7 @@ function onContextCreated(robot) {
     if (Math.abs(offX) <= TRACK_DEADBAND && Math.abs(offZ) <= TRACK_DEADBAND) return false
     aimY = clamp(aimY - TRACK_FLIP_Y * TRACK_GAIN_Y * offX * 2, -AIM_Y_MAX, AIM_Y_MAX)
     aimZ = clamp(aimZ + TRACK_GAIN_Z * offZ, AIM_Z_MIN, AIM_Z_MAX)
-    look()
+    await look()
     await sleep(500) // サーボが向き終わるのを待つ
     resetBaseline(AIM_SETTLE_MS)
     return true
@@ -250,7 +275,7 @@ function onContextCreated(robot) {
         personHere = false
         aimY = 0
         aimZ = 0.05
-        robot.motion.lookAway()
+        await look() // 正面に戻る
         robot.face.setEmotion(4)
         resetBaseline(AIM_SETTLE_MS)
       } else if (!personHere && now - lastMurmurAt >= MURMUR_MS) {
@@ -258,7 +283,7 @@ function onContextCreated(robot) {
         // 無人のときはきょろきょろして、通りがかりの人の気を引く
         aimY = (Math.random() - 0.5) * 2 * 0.3
         aimZ = 0.05
-        look()
+        await look()
         await perform([idleMurmurs[Math.floor(Math.random() * idleMurmurs.length)]])
       }
     } catch (e) {
