@@ -40,11 +40,11 @@ cd upstream/firmware && npm install && npm run setup -- --device=esp32
 
 ### 2. 音声（WAV）の生成
 
-台詞は `ideatech_promo/speeches.js`。話者はずんだもん あまあま（`--speaker 1`。ノーマルは 3、ツンツンは 7）、サンプルレートは 11025。
+台詞は `ideatech_promo/speeches.js`。話者はずんだもん ノーマル（`--speaker 3`。あまあまは 1、ツンツンは 7）、サンプルレートは 11025。
 
 ```sh
 cd upstream/firmware
-npm run generate-speech-voicevox -- --input ../../ideatech_promo/speeches.js --output ../../ideatech_promo/assets --speaker 1 --sample 11025
+npm run generate-speech-voicevox -- --input ../../ideatech_promo/speeches.js --output ../../ideatech_promo/assets --speaker 3 --sample 11025
 ```
 
 ### 3. 書き込み
