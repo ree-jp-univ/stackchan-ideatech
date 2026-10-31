@@ -1,0 +1,12 @@
+{
+  "include": ["$(MODDABLE)/examples/manifest_mod.json"],
+  "config": {
+    "tts": {
+      "type": "local",
+      "sampleRate": 24000
+    }
+  },
+  "modules": {
+    "*": ["./mod", "./speeches"]
+  }
+}
